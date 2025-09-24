@@ -1,4 +1,4 @@
-package com.pingpong.app.feature.admin
+﻿package com.pingpong.app.feature.admin
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +43,7 @@ fun AdminManagementRoute() {
                 AdminSection.COACH_MANAGE -> AdminCoachManageRoute()
                 AdminSection.STUDENT_MANAGE -> AdminStudentManageRoute()
                 AdminSection.CHANGE_REQUESTS -> AdminChangeManageRoute()
+                AdminSection.NOTIFICATIONS -> AdminNotificationRoute()
             }
         }
     }
@@ -52,5 +53,6 @@ enum class AdminSection(val title: String) {
     COACH_AUDIT("Coach audit"),
     COACH_MANAGE("Coach manage"),
     STUDENT_MANAGE("Student manage"),
-    CHANGE_REQUESTS("Change requests")
+    CHANGE_REQUESTS("Change requests"),
+    NOTIFICATIONS("Notifications")
 }

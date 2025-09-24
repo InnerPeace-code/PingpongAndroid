@@ -1,4 +1,4 @@
-package com.pingpong.app.feature.schedule
+﻿package com.pingpong.app.feature.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,8 +25,7 @@ class ScheduleViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState
 
-    private var isSuperAdmin: Boolean = false
-    private var token: String? = null
+    private var authToken: String? = null
 
     init {
         viewModelScope.launch {
@@ -36,9 +35,8 @@ class ScheduleViewModel @Inject constructor(
 
     private suspend fun loadInitialData() {
         runCatching { sessionRepository.currentSession() }
-            .onSuccess { session ->
-                isSuperAdmin = session.role == "super_admin"
-                token = if (isSuperAdmin) null else tokenProvider.currentToken()
+            .onSuccess {
+                authToken = tokenProvider.currentToken()
                 loadSchools()
             }
             .onFailure { throwable ->
@@ -47,9 +45,13 @@ class ScheduleViewModel @Inject constructor(
     }
 
     private fun loadSchools() {
+        val token = authToken ?: run {
+            _uiState.update { it.copy(error = "Authentication token missing") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = scheduleRepository.getAvailableSchools(isSuperAdmin, token)
+            val result = scheduleRepository.getAvailableSchools(isSuperAdmin = false, token = token)
             result
                 .onSuccess { schools ->
                     val selected = schools.firstOrNull()?.id
@@ -72,7 +74,7 @@ class ScheduleViewModel @Inject constructor(
     private fun loadSchedule(schoolId: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(scheduleState = UiState.Loading) }
-            val result = scheduleRepository.getSchoolSchedule(schoolId, isSuperAdmin)
+            val result = scheduleRepository.getSchoolSchedule(schoolId, isSuper = false)
             result
                 .onSuccess { slots ->
                     _uiState.update { it.copy(scheduleState = UiState.Success(slots)) }

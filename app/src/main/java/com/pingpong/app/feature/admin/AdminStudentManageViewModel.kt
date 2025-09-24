@@ -43,16 +43,16 @@ class AdminStudentManageViewModel @Inject constructor(
         }
     }
 
-    fun updateStudent(student: AdminStudentSummary, phone: String, email: String, status: String?) {
+    fun updateStudent(student: AdminStudentSummary, name: String, phone: String, email: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(actionState = UiState.Loading) }
             val token = tokenProvider.currentToken()
             val payload = buildJsonObject {
                 put("id", kotlinx.serialization.json.JsonPrimitive(student.id))
                 student.name?.let { put("name", it) }
+                put("name", name)
                 put("phone", phone)
                 put("email", email)
-                status?.let { put("status", it) }
             }
             val result = adminRepository.updateStudent(token, payload)
             result

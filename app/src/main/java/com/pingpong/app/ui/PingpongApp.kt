@@ -1,6 +1,7 @@
-package com.pingpong.app.ui
+﻿package com.pingpong.app.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,7 +13,11 @@ import com.pingpong.app.ui.theme.PingpongTheme
 fun PingpongApp() {
     PingpongTheme {
         val navController = rememberNavController()
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+        ) {
             PingpongNavHost(navController = navController)
         }
     }

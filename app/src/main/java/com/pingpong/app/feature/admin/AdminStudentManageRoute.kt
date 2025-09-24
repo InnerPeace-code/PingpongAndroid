@@ -40,9 +40,9 @@ fun AdminStudentManageRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<AdminStudentSummary?>(null) }
+    var name by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
-    var status by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(state.message) {
         if (state.message != null) {
@@ -59,6 +59,12 @@ fun AdminStudentManageRoute(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(text = editing?.name ?: "Student")
                     OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it },
                         label = { Text("Phone") },
@@ -70,17 +76,11 @@ fun AdminStudentManageRoute(
                         label = { Text("Email") },
                         singleLine = true
                     )
-                    OutlinedTextField(
-                        value = status,
-                        onValueChange = { status = it },
-                        label = { Text("Status") },
-                        singleLine = true
-                    )
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    editing?.let { viewModel.updateStudent(it, phone.trim(), email.trim(), status.takeIf { it.isNotBlank() }) }
+                    editing?.let { viewModel.updateStudent(it, name.trim(), phone.trim(), email.trim()) }
                     editing = null
                 }) {
                     Text(text = "Save")
@@ -99,9 +99,9 @@ fun AdminStudentManageRoute(
         onRefresh = viewModel::refresh,
         onEdit = { student ->
             editing = student
+            name = student.name.orEmpty()
             phone = student.phone.orEmpty()
             email = student.email.orEmpty()
-            status = student.status.orEmpty()
         }
     )
 }
@@ -172,9 +172,9 @@ private fun AdminStudentCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(text = student.name ?: "Student", style = MaterialTheme.typography.titleMedium)
             student.schoolName?.let { Text(text = "School: $it") }
+            student.name?.let { Text(text = "Name: $it") }
             student.phone?.let { Text(text = "Phone: $it") }
             student.email?.let { Text(text = "Email: $it") }
-            student.status?.let { Text(text = "Status: $it") }
             OutlinedButton(onClick = onEdit) {
                 Text(text = "Edit")
             }

@@ -15,9 +15,6 @@ import retrofit2.http.Query
 
 interface AuthApi {
 
-    @POST("/super_admin/login")
-    suspend fun superAdminLogin(@Body body: LoginRequest): ApiResponse<JsonElement>
-
     @POST("/admin/login")
     suspend fun campusAdminLogin(@Body body: LoginRequest): ApiResponse<JsonElement>
 

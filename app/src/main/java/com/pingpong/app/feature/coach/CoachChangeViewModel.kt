@@ -1,4 +1,4 @@
-package com.pingpong.app.feature.coach
+﻿package com.pingpong.app.feature.coach
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,16 +26,14 @@ class CoachChangeViewModel @Inject constructor(
     private var userType: String = "COACH"
 
     init {
-        viewModelScope.launch {
-            loadSessionAndData()
-        }
+        viewModelScope.launch { loadSessionAndData() }
     }
 
     private suspend fun loadSessionAndData() {
         runCatching { sessionRepository.currentSession() }
             .onSuccess { session ->
                 userId = session.userId
-                userType = session.userType?.uppercase() ?: session.role.uppercase()
+                userType = session.userType ?: session.role?.uppercase() ?: "COACH"
                 refresh()
             }
             .onFailure { throwable ->
@@ -65,7 +63,12 @@ class CoachChangeViewModel @Inject constructor(
             val result = coachChangeRepository.handleChangeRequest(requestId, id, userType, approve)
             result
                 .onSuccess {
-                    _uiState.update { it.copy(actionState = UiState.Success(Unit), message = if (approve) "Change approved" else "Change rejected") }
+                    _uiState.update {
+                        it.copy(
+                            actionState = UiState.Success(Unit),
+                            message = if (approve) "Change approved" else "Change rejected"
+                        )
+                    }
                     refresh()
                 }
                 .onFailure { throwable ->

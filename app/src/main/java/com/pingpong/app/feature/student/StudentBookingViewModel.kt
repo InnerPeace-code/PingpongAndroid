@@ -35,7 +35,7 @@ class StudentBookingViewModel @Inject constructor(
 
     private var studentId: Long? = null
     private var schoolId: Long? = null
-    private var isSuper: Boolean = false
+
 
     private var loadScheduleJob: Job? = null
 
@@ -53,7 +53,7 @@ class StudentBookingViewModel @Inject constructor(
             .getOrNull() ?: return
         studentId = session.userId
         schoolId = session.schoolId
-        isSuper = session.role.equals("super_admin", ignoreCase = true)
+
         refreshAll()
     }
 
@@ -113,7 +113,7 @@ class StudentBookingViewModel @Inject constructor(
 
     private suspend fun loadSchoolSchedule() {
         val sid = schoolId ?: return
-        val result = scheduleRepository.getSchoolSchedule(sid, isSuper)
+        val result = scheduleRepository.getSchoolSchedule(sid, false)
         result
             .onSuccess { slots ->
                 _uiState.update { it.copy(timeSlots = slots) }

@@ -29,7 +29,6 @@ class AuthRepository @Inject constructor(
     suspend fun login(request: LoginRequest): ApiResponse<LoginResponse> = withContext(ioDispatcher) {
         val backendRequest = adjustLoginRequestForBackend(request)
         val apiResponse = when (request.role) {
-            "super_admin" -> authApi.superAdminLogin(backendRequest)
             "campus_admin" -> authApi.campusAdminLogin(backendRequest)
             "coach" -> authApi.coachLogin(backendRequest)
             "student" -> authApi.studentLogin(backendRequest)
@@ -63,19 +62,21 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun register(role: String, payload: JsonObject) = withContext(ioDispatcher) {
-        authApi.register(role, payload)
+        authApi.register(role.backendRole(), payload)
     }
 
     suspend fun updateProfile(role: String, payload: JsonObject) = withContext(ioDispatcher) {
-        authApi.updateProfile(role, payload)
+        authApi.updateProfile(role.backendRole(), payload)
     }
 
     private fun adjustLoginRequestForBackend(request: LoginRequest): LoginRequest {
-        val backendRole = when (request.role) {
-            "campus_admin" -> "admin"
-            else -> request.role
-        }
+        val backendRole = request.role.backendRole()
         return if (backendRole == request.role) request else request.copy(role = backendRole)
+    }
+
+    private fun String.backendRole(): String = when (this) {
+        "campus_admin" -> "admin"
+        else -> this
     }
 
     private fun JsonElement?.extractToken(): String? {

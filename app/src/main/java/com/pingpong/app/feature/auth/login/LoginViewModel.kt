@@ -1,4 +1,4 @@
-package com.pingpong.app.feature.auth.login
+﻿package com.pingpong.app.feature.auth.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class UserRole(val key: String, val displayName: String) {
-    SUPER_ADMIN("super_admin", "Super Admin"),
     CAMPUS_ADMIN("campus_admin", "Campus Admin"),
     COACH("coach", "Coach"),
     STUDENT("student", "Student");

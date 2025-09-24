@@ -17,7 +17,6 @@ data class AdminStudentSummary(
     val phone: String?,
     val email: String?,
     val schoolName: String?,
-    val status: String?,
     val balance: Double? = null
 )
 

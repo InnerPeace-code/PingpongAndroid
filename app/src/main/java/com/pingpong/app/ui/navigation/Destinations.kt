@@ -1,4 +1,4 @@
-package com.pingpong.app.ui.navigation
+﻿package com.pingpong.app.ui.navigation
 
 enum class RootDestination(val route: String) {
     AUTH("auth"),
@@ -17,7 +17,6 @@ enum class TopLevelDestination(val route: String, val title: String) {
     ADMIN_MANAGE("main/admin/manage", "Admin"),
     STUDENT("main/student", "Students"),
     COACH("main/coach", "Coaches"),
-    SUPER_ADMIN_MANAGE("main/super-admin/manage", "Super Admin"),
     SCHEDULE("main/schedule", "Schedule"),
     EVALUATION("main/evaluation", "Evaluations")
 }

@@ -35,7 +35,14 @@ class EvaluationViewModel @Inject constructor(
         runCatching { sessionRepository.currentSession() }
             .onSuccess { session ->
                 userId = session.userId
-                userType = session.role.uppercase()
+                userType = session.userType ?: session.role?.let { role ->
+                    when (role.lowercase()) {
+                        "campus_admin", "admin" -> "ADMIN"
+                        "coach" -> "COACH"
+                        "student" -> "STUDENT"
+                        else -> role.uppercase()
+                    }
+                } ?: "STUDENT"
                 refresh()
             }
             .onFailure { throwable ->

@@ -1,4 +1,4 @@
-package com.pingpong.app.core.network
+﻿package com.pingpong.app.core.network
 
 import com.pingpong.app.core.network.api.AdminApi
 import com.pingpong.app.core.network.api.AppointmentApi
@@ -11,7 +11,6 @@ import com.pingpong.app.core.network.api.NotificationApi
 import com.pingpong.app.core.network.api.PaymentApi
 import com.pingpong.app.core.network.api.ScheduleApi
 import com.pingpong.app.core.network.api.StudentApi
-import com.pingpong.app.core.network.api.SuperAdminApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,10 +25,6 @@ object ApiModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideSuperAdminApi(retrofit: Retrofit): SuperAdminApi = retrofit.create(SuperAdminApi::class.java)
 
     @Provides
     @Singleton

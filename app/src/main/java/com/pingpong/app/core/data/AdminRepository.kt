@@ -24,7 +24,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 @Singleton
 class AdminRepository @Inject constructor(
@@ -138,6 +137,7 @@ class AdminRepository @Inject constructor(
         val array = this.asJsonArrayOrNull()
             ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("records")
             ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("data")
+            ?: this.asJsonObjectOrNull()?.jsonObjectOrNull("data")?.jsonArrayOrNull("content")
             ?: emptyList()
         return array.mapNotNull { element ->
             val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
@@ -162,20 +162,35 @@ class AdminRepository @Inject constructor(
     }
 
     private fun JsonElement?.parseAdminStudents(): List<AdminStudentSummary> {
-        val array = this.asJsonArrayOrNull()
-            ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("records")
-            ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("data")
-            ?: emptyList()
-        return array.mapNotNull { element ->
-            val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
+        if (this == null) return emptyList()
+
+        // 兼容多种列表位置：顶层数组、content、data.content、records、data
+        val array: List<JsonElement> =
+            this.asJsonArrayOrNull()
+                ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("content")
+                ?: this.asJsonObjectOrNull()?.jsonObjectOrNull("data")?.jsonArrayOrNull("content")
+                ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("records")
+                ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("data")
+                ?: emptyList()
+
+        return array.mapNotNull { el ->
+            val obj = el.asJsonObjectOrNull() ?: return@mapNotNull null
+
             val id = obj.longOrNull("id") ?: obj.longOrNull("studentId") ?: return@mapNotNull null
+
+            val email = obj.stringOrNull("email")?.takeIf { it.isNotBlank() } // 过滤空字符串
+            val schoolName = obj.stringOrNull("schoolName")
+                ?: obj.stringOrNull("campusName")
+                ?: obj.longOrNull("schoolId")?.toString() // 没有名称时用ID占位
+
             AdminStudentSummary(
                 id = id,
-                name = obj.stringOrNull("name") ?: obj.stringOrNull("realName"),
+                name = obj.stringOrNull("name")
+                    ?: obj.stringOrNull("realName")
+                    ?: obj.stringOrNull("username"),
                 phone = obj.stringOrNull("phone") ?: obj.stringOrNull("mobile"),
-                email = obj.stringOrNull("email"),
-                schoolName = obj.stringOrNull("schoolName") ?: obj.stringOrNull("campusName"),
-                status = obj.stringOrNull("status"),
+                email = email,
+                schoolName = schoolName,
                 balance = obj.doubleOrNull("balance")
                     ?: obj.stringOrNull("balance")?.toDoubleOrNull()
                     ?: obj.jsonObjectOrNull("account")?.doubleOrNull("balance")

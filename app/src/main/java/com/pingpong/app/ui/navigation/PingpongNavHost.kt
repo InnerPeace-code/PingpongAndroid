@@ -1,24 +1,21 @@
-package com.pingpong.app.ui.navigation
+﻿package com.pingpong.app.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navOptions
+import com.pingpong.app.feature.admin.AdminManagementRoute
 import com.pingpong.app.feature.auth.login.LoginRoute
 import com.pingpong.app.feature.auth.pending.RegisterPendingRoute
 import com.pingpong.app.feature.auth.register.RegisterRoute
-import com.pingpong.app.feature.dashboard.DashboardRoute
-import com.pingpong.app.feature.profile.ProfileRoute
-import com.pingpong.app.feature.admin.AdminManagementRoute
-import com.pingpong.app.feature.superadmin.SuperAdminManagementRoute
-import com.pingpong.app.feature.student.StudentHomeRoute
 import com.pingpong.app.feature.coach.CoachHomeRoute
-import com.pingpong.app.feature.schedule.ScheduleRoute
+import com.pingpong.app.feature.dashboard.DashboardRoute
 import com.pingpong.app.feature.evaluation.EvaluationRoute
-
+import com.pingpong.app.feature.profile.ProfileRoute
+import com.pingpong.app.feature.schedule.ScheduleRoute
+import com.pingpong.app.feature.student.StudentHomeRoute
 
 @Composable
 fun PingpongNavHost(
@@ -37,16 +34,13 @@ fun PingpongNavHost(
                     onLoginSuccess = { role ->
                         navController.navigate(
                             route = when (role) {
-                                "super_admin" -> TopLevelDestination.SUPER_ADMIN_MANAGE.route
                                 "campus_admin" -> TopLevelDestination.ADMIN_MANAGE.route
                                 "coach" -> TopLevelDestination.COACH.route
                                 "student" -> TopLevelDestination.STUDENT.route
                                 else -> TopLevelDestination.DASHBOARD.route
                             },
                             navOptions = navOptions {
-                                popUpTo(RootDestination.AUTH.route) {
-                                    inclusive = true
-                                }
+                                popUpTo(RootDestination.AUTH.route) { inclusive = true }
                             }
                         )
                     },
@@ -82,13 +76,17 @@ fun PingpongNavHost(
                 })
             }
             composable(TopLevelDestination.PROFILE.route) {
-                ProfileRoute(onBack = { navController.popBackStack() })
+                ProfileRoute(
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        navController.navigate(RootDestination.AUTH.route) {
+                            popUpTo(RootDestination.MAIN.route) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(TopLevelDestination.ADMIN_MANAGE.route) {
                 AdminManagementRoute()
-            }
-            composable(TopLevelDestination.SUPER_ADMIN_MANAGE.route) {
-                SuperAdminManagementRoute()
             }
             composable(TopLevelDestination.STUDENT.route) {
                 StudentHomeRoute()
@@ -105,4 +103,3 @@ fun PingpongNavHost(
         }
     }
 }
-

@@ -18,20 +18,37 @@ data class LoginResponse(
 
 @Serializable
 data class TokenInfo(
-    @SerialName("token") val token: String,
-    @SerialName("role") val role: String,
     @SerialName("username") val username: String? = null,
-    @SerialName("name") val name: String? = null,
-    @SerialName("realName") val realName: String? = null,
-    @SerialName("userId") val userId: Long? = null,
-    @SerialName("schoolId") val schoolId: Long? = null,
-    @SerialName("avatar") val avatar: String? = null,
-    @SerialName("avatarUrl") val avatarUrl: String? = null,
+    @SerialName("password") val password: String? = null,
+    @SerialName("age") val age: Int? = null,
+    @SerialName("isMale") private val isMaleFlag: Boolean? = null,
+    @SerialName("male") private val maleFlag: Boolean? = null,
     @SerialName("phone") val phone: String? = null,
     @SerialName("email") val email: String? = null,
-    @SerialName("userType") val userType: String? = null,
-    @SerialName("permissions") val permissions: List<String>? = null
-)
+    @SerialName("schoolId") val schoolId: Long? = null,
+    @SerialName("role") private val backendRole: String? = null,
+    @SerialName("UserId") private val backendUserId: Long? = null,
+    @SerialName("avatar") val avatar: String? = null,
+    @SerialName("avatarUrl") val avatarUrl: String? = null,
+    @SerialName("photoPath") val photoPath: String? = null,
+    @SerialName("description") val description: String? = null,
+    @SerialName("name") val name: String? = null
+) {
+    val role: String?
+        get() = when (backendRole?.lowercase()) {
+            "admin" -> "campus_admin"
+            else -> backendRole
+        }
+
+    val userId: Long?
+        get() = backendUserId
+
+    val male: Boolean?
+        get() = isMaleFlag ?: maleFlag
+
+    val userType: String?
+        get() = role?.uppercase()
+}
 
 @Serializable
 data class LogoutRequest(
