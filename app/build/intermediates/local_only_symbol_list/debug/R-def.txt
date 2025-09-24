@@ -1,0 +1,25 @@
+R_DEF: Internal format may change without notice
+local
+color background
+color primary
+color secondary
+drawable ic_launcher_background
+drawable ic_launcher_foreground
+drawable placeholder_1_1
+drawable placeholder_4_3
+drawable post_1
+drawable post_1_thumb
+drawable post_2
+drawable post_2_thumb
+drawable post_3
+drawable post_3_thumb
+drawable post_4
+drawable post_4_thumb
+drawable post_5
+drawable post_5_thumb
+drawable post_6
+drawable post_6_thumb
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+style Theme.Pingpong
