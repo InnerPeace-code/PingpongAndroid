@@ -22,7 +22,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pingpong.app.core.common.UiState
-import com.pingpong.app.core.model.student.CoachApplication
+import com.pingpong.app.core.model.coach.CoachApplication
 import com.pingpong.app.core.model.student.CoachDetail
 import kotlinx.coroutines.delay
 
@@ -62,7 +61,6 @@ fun AdminCoachAuditRoute(
             title = { Text(text = "Approve coach") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "Enter certification level")
                     OutlinedTextField(
                         value = levelInput,
                         onValueChange = { levelInput = it },
@@ -78,9 +76,9 @@ fun AdminCoachAuditRoute(
                     if (parsed == null || parsed <= 0) {
                         levelError = "Enter positive integer"
                     } else {
-                        levelError = null
                         viewModel.certify(levelDialogCoachId, true, parsed)
                         levelDialogCoachId = null
+                        levelError = null
                     }
                 }) {
                     Text("Approve")
@@ -182,7 +180,7 @@ private fun AdminCoachAuditScreen(
                 text = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator()
                     }
@@ -221,10 +219,16 @@ private fun AdminCoachApplicationCard(
     onViewDetail: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = application.studentName ?: "Coach", style = MaterialTheme.typography.titleMedium)
-            application.appliedAt?.let { Text(text = "Applied at: $it") }
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = application.coachName ?: application.studentName ?: "Coach",
+                style = MaterialTheme.typography.titleMedium
+            )
             application.status?.let { Text(text = "Status: $it") }
+            Text(text = "Applied at: ${application.appliedAt ?: "--"}")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onApprove) {
                     Text(text = "Approve")
@@ -239,5 +243,3 @@ private fun AdminCoachApplicationCard(
         }
     }
 }
-
-

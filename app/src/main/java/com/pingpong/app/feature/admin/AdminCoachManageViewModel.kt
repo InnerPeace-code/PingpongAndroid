@@ -57,18 +57,9 @@ class AdminCoachManageViewModel @Inject constructor(
         _uiState.update { it.copy(detailState = UiState.Idle) }
     }
 
-    fun toggleStatus(coachId: Long, status: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(actionState = UiState.Loading) }
-            val result = adminRepository.updateCoachStatus(coachId, status)
-            result
-                .onSuccess {
-                    _uiState.update { it.copy(actionState = UiState.Success(Unit), message = "Status updated") }
-                    refresh()
-                }
-                .onFailure { throwable ->
-                    _uiState.update { it.copy(actionState = UiState.Error(throwable.message)) }
-                }
+    fun toggleStatus(@Suppress("UNUSED_PARAMETER") coachId: Long, @Suppress("UNUSED_PARAMETER") status: String) {
+        _uiState.update {
+            it.copy(message = "Status updates are handled via certification flow only.")
         }
     }
 

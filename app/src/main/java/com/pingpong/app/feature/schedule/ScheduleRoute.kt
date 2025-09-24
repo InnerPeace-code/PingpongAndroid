@@ -121,7 +121,6 @@ private fun ScheduleList(slots: List<TimeSlot>) {
                     val day = slot.dayOfWeek?.let { dayOfWeekText(it) } ?: "Day"
                     Text(text = day, style = MaterialTheme.typography.titleMedium)
                     Text(text = "${slot.startTime ?: "--"} - ${slot.endTime ?: "--"}")
-                    slot.remarks?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }

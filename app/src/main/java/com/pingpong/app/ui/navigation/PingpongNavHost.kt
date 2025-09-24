@@ -1,6 +1,7 @@
 package com.pingpong.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +18,7 @@ import com.pingpong.app.feature.student.StudentHomeRoute
 import com.pingpong.app.feature.coach.CoachHomeRoute
 import com.pingpong.app.feature.schedule.ScheduleRoute
 import com.pingpong.app.feature.evaluation.EvaluationRoute
+
 
 @Composable
 fun PingpongNavHost(
@@ -84,6 +86,9 @@ fun PingpongNavHost(
             }
             composable(TopLevelDestination.ADMIN_MANAGE.route) {
                 AdminManagementRoute()
+            }
+            composable(TopLevelDestination.SUPER_ADMIN_MANAGE.route) {
+                SuperAdminManagementRoute()
             }
             composable(TopLevelDestination.STUDENT.route) {
                 StudentHomeRoute()

@@ -37,6 +37,10 @@ fun JsonObject.doubleOrNull(key: String): Double? = this[key].asDoubleOrNull()
 
 fun JsonObject.booleanOrNull(key: String): Boolean? = this[key].asBooleanOrNull()
 
+fun JsonElement?.jsonObjectOrNull(key: String): JsonObject? = this.asJsonObjectOrNull()?.jsonObjectOrNull(key)
+
+fun JsonElement?.jsonArrayOrNull(key: String): JsonArray? = this.asJsonObjectOrNull()?.jsonArrayOrNull(key)
+
 fun JsonObject.jsonObjectOrNull(key: String): JsonObject? = this[key]?.asJsonObjectOrNull()
 
 fun JsonObject.jsonArrayOrNull(key: String): JsonArray? = this[key]?.asJsonArrayOrNull()

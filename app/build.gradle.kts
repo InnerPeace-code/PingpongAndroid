@@ -10,7 +10,7 @@ android {
     namespace = "com.pingpong.app"
     compileSdk = 34
 
-    val apiBaseUrl = project.findProperty("PINGPONG_API_BASE_URL") as String? ?: "https://example.com/api"
+    val apiBaseUrl = project.findProperty("PINGPONG_API_BASE_URL") as String? ?: "http://127.0.0.1:8080/api/"
 
     defaultConfig {
         applicationId = "com.pingpong.app"

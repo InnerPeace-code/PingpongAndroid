@@ -10,11 +10,12 @@ import com.pingpong.app.core.common.jsonArrayOrNull
 import com.pingpong.app.core.common.jsonObjectOrNull
 import com.pingpong.app.core.common.longOrNull
 import com.pingpong.app.core.common.stringOrNull
+import com.pingpong.app.core.auth.TokenProvider
 import com.pingpong.app.core.model.admin.AdminCoachSummary
 import com.pingpong.app.core.model.admin.AdminStudentSummary
 import com.pingpong.app.core.model.admin.AdminUserSummary
 import com.pingpong.app.core.model.admin.SchoolSummary
-import com.pingpong.app.core.model.student.CoachApplication
+import com.pingpong.app.core.model.coach.CoachApplication
 import com.pingpong.app.core.model.student.CoachDetail
 import com.pingpong.app.core.network.api.SuperAdminApi
 import javax.inject.Inject
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.JsonObject
 @Singleton
 class SuperAdminRepository @Inject constructor(
     private val superAdminApi: SuperAdminApi,
+    private val tokenProvider: TokenProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
@@ -114,7 +116,9 @@ class SuperAdminRepository @Inject constructor(
 
     suspend fun getAllStudents(params: Map<String, String> = emptyMap()): Result<List<AdminStudentSummary>> = withContext(ioDispatcher) {
         runCatching {
-            val response = superAdminApi.getAllStudents(params)
+            val token = params["token"] ?: tokenProvider.currentToken() ?: throw IllegalStateException("Missing auth token")
+            val query = params.toMutableMap().apply { this["token"] = token }
+            val response = superAdminApi.getAllStudents(query)
             ensureSuccess(response)
             response.data.parseAdminStudents()
         }
@@ -122,7 +126,9 @@ class SuperAdminRepository @Inject constructor(
 
     suspend fun getAllCertifiedCoaches(params: Map<String, String> = emptyMap()): Result<List<AdminCoachSummary>> = withContext(ioDispatcher) {
         runCatching {
-            val response = superAdminApi.getAllCertifiedCoaches(params)
+            val token = params["token"] ?: tokenProvider.currentToken() ?: throw IllegalStateException("Missing auth token")
+            val query = params.toMutableMap().apply { this["token"] = token }
+            val response = superAdminApi.getAllCertifiedCoaches(query)
             ensureSuccess(response)
             response.data.parseAdminCoaches()
         }
@@ -130,15 +136,18 @@ class SuperAdminRepository @Inject constructor(
 
     suspend fun updateStudent(token: String?, body: JsonObject): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            ensureSuccess(superAdminApi.updateStudent(token, body))
+            ensureSuccess(superAdminApi.updateStudent(token ?: requireToken(), body))
         }
     }
 
     suspend fun updateCertifiedCoach(token: String?, body: JsonObject): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            ensureSuccess(superAdminApi.updateCertifiedCoach(token, body))
+            ensureSuccess(superAdminApi.updateCertifiedCoach(token ?: requireToken(), body))
         }
     }
+
+    private fun requireToken(): String = tokenProvider.currentToken()
+        ?: throw IllegalStateException("Authentication token missing")
 
     private fun ensureSuccess(response: com.pingpong.app.core.model.ApiResponse<*>?) {
         if (response == null || response.code != 20000) {
@@ -188,16 +197,26 @@ class SuperAdminRepository @Inject constructor(
             ?: emptyList()
         return array.mapNotNull { element ->
             val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
-            val relationId = obj.longOrNull("id") ?: obj.longOrNull("coachId") ?: return@mapNotNull null
+            val relation = obj.jsonObjectOrNull("relation") ?: obj
+            val coach = obj.jsonObjectOrNull("coach") ?: obj
+            val student = obj.jsonObjectOrNull("student") ?: obj.jsonObjectOrNull("studentInfo")
+            val relationId = relation.longOrNull("id")
+                ?: relation.longOrNull("coachId")
+                ?: coach.longOrNull("id")
+                ?: obj.longOrNull("coachId")
+                ?: return@mapNotNull null
             CoachApplication(
                 relationId = relationId,
-                studentId = null,
-                studentName = obj.stringOrNull("realName") ?: obj.stringOrNull("name"),
-                studentMale = obj.booleanOrNull("male") ?: obj.booleanOrNull("isMale"),
-                studentAge = obj.intOrNull("age"),
-                status = obj.stringOrNull("status"),
-                appliedAt = obj.stringOrNull("createTime") ?: obj.stringOrNull("createdAt"),
-                coachId = obj.longOrNull("id") ?: obj.longOrNull("coachId")
+                coachId = coach.longOrNull("id") ?: relation.longOrNull("coachId"),
+                coachName = coach.stringOrNull("realName") ?: coach.stringOrNull("name"),
+                coachMale = coach.booleanOrNull("male") ?: coach.booleanOrNull("isMale"),
+                coachAge = coach.intOrNull("age"),
+                studentId = student?.longOrNull("id") ?: relation.longOrNull("studentId"),
+                studentName = student?.stringOrNull("name") ?: student?.stringOrNull("realName"),
+                studentMale = student?.booleanOrNull("male") ?: student?.booleanOrNull("isMale"),
+                studentAge = student?.intOrNull("age"),
+                status = relation.stringOrNull("status") ?: obj.stringOrNull("status"),
+                appliedAt = relation.stringOrNull("createTime") ?: relation.stringOrNull("createdAt") ?: obj.stringOrNull("createTime")
             )
         }
     }

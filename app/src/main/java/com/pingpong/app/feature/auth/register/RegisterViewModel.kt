@@ -1,8 +1,11 @@
-package com.pingpong.app.feature.auth.register
+﻿package com.pingpong.app.feature.auth.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pingpong.app.core.common.UiState
+import com.pingpong.app.core.common.asJsonArrayOrNull
+import com.pingpong.app.core.common.asJsonObjectOrNull
+import com.pingpong.app.core.common.stringOrNull
 import com.pingpong.app.core.data.AuthRepository
 import com.pingpong.app.core.data.CampusRepository
 import com.pingpong.app.core.model.SchoolOption
@@ -18,7 +21,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-
 
 enum class RegisterRole(val key: String, val displayName: String) {
     STUDENT("student", "Student"),
@@ -76,7 +78,7 @@ class RegisterViewModel @Inject constructor(
                 } else {
                     _schoolState.value = SchoolSelectionState(emptyList(), loading = false)
                 }
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
                 _schoolState.value = SchoolSelectionState(emptyList(), loading = false)
             }
         }
@@ -144,22 +146,11 @@ class RegisterViewModel @Inject constructor(
     fun register() {
         val form = _formState.value
         if (!form.isValid) return
+
         viewModelScope.launch {
             _submitState.value = UiState.Loading
             try {
-                val payload = buildJsonObject {
-                    put("username", form.username)
-                    put("password", form.password)
-                    put("realName", form.realName)
-                    put("gender", form.gender)
-                    put("age", form.age)
-                    put("campus", form.campusId?.let { JsonPrimitive(it) } ?: JsonPrimitive(0))
-                    put("phone", form.phone)
-                    if (form.email.isNotBlank()) put("email", form.email)
-                    if (form.role == RegisterRole.COACH && form.achievements.isNotBlank()) {
-                        put("achievements", form.achievements)
-                    }
-                }
+                val payload = buildRegistrationPayload(form)
                 val response = authRepository.register(form.role.key, payload)
                 if (response.code == 20000) {
                     _submitState.value = UiState.Success(Unit)
@@ -185,28 +176,52 @@ class RegisterViewModel @Inject constructor(
                 state.gender.isNotBlank() &&
                 state.campusId != null &&
                 state.phone.length >= 6
+            val ageValid = state.age.toIntOrNull()?.let { it in 4..100 } ?: false
             val coachValid = if (state.role == RegisterRole.COACH) {
                 state.achievements.isNotBlank()
             } else true
-            state.copy(isValid = baseValid && coachValid)
+            state.copy(isValid = baseValid && coachValid && ageValid)
+        }
+    }
+
+    private fun buildRegistrationPayload(form: RegisterFormState): JsonObject {
+        val isMale = form.gender.equals("male", ignoreCase = true) || form.gender.equals("m", ignoreCase = true)
+        val ageValue = form.age.toIntOrNull()
+        return buildJsonObject {
+            put("username", form.username)
+            put("password", form.password)
+            put("name", form.realName)
+            put("isMale", JsonPrimitive(isMale))
+            ageValue?.let { put("age", JsonPrimitive(it)) }
+            form.campusId?.let { put("schoolId", JsonPrimitive(it)) }
+            put("phone", form.phone)
+            if (form.email.isNotBlank()) {
+                put("email", form.email)
+            }
+            if (form.role == RegisterRole.COACH) {
+                put("description", form.achievements)
+                form.photoPath?.let { put("photoPath", it) }
+            }
         }
     }
 }
 
-private fun JsonObject?.parseSchools(): List<SchoolOption> {
-    val array: JsonArray? = when {
-        this == null -> null
-        this.containsKey("data") -> this["data"] as? JsonArray
-        this.containsKey("list") -> this["list"] as? JsonArray
-        else -> this.values.firstOrNull { it is JsonArray } as? JsonArray
+private fun JsonElement?.parseSchools(): List<SchoolOption> {
+    val root = this?.asJsonObjectOrNull() ?: return emptyList()
+    val candidate: JsonArray? = when {
+        root.containsKey("data") -> root["data"]?.asJsonArrayOrNull()
+        root.containsKey("list") -> root["list"]?.asJsonArrayOrNull()
+        else -> root.values.firstOrNull { it.asJsonArrayOrNull() != null }?.asJsonArrayOrNull()
     }
-    return array?.mapNotNull { element -> element.toSchoolOption() } ?: emptyList()
-}
-
-private fun JsonElement.toSchoolOption(): SchoolOption? {
-    val obj = this as? JsonObject ?: return null
-    val id = obj["id"]?.jsonPrimitive?.content?.toLongOrNull() ?: return null
-    val name = obj["schoolname"]?.jsonPrimitive?.content
-        ?: obj["name"]?.jsonPrimitive?.content ?: return null
-    return SchoolOption(id = id, name = name)
+    return candidate?.mapNotNull { element ->
+        val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
+        val id = obj.stringOrNull("id")?.toLongOrNull()
+            ?: obj.stringOrNull("schoolId")?.toLongOrNull()
+            ?: return@mapNotNull null
+        val name = obj.stringOrNull("schoolname")
+            ?: obj.stringOrNull("name")
+            ?: obj.stringOrNull("label")
+            ?: return@mapNotNull null
+        SchoolOption(id = id, name = name)
+    } ?: emptyList()
 }

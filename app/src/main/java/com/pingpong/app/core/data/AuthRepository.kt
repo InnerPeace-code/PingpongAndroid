@@ -1,7 +1,8 @@
-package com.pingpong.app.core.data
+﻿package com.pingpong.app.core.data
 
 import com.pingpong.app.core.auth.TokenManager
 import com.pingpong.app.core.common.IoDispatcher
+import com.pingpong.app.core.common.asStringOrNull
 import com.pingpong.app.core.model.ApiResponse
 import com.pingpong.app.core.model.LoginRequest
 import com.pingpong.app.core.model.LoginResponse
@@ -12,7 +13,9 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -24,29 +27,35 @@ class AuthRepository @Inject constructor(
 ) {
 
     suspend fun login(request: LoginRequest): ApiResponse<LoginResponse> = withContext(ioDispatcher) {
-        val response = when (request.role) {
-            "super_admin" -> authApi.superAdminLogin(request)
-            "campus_admin" -> authApi.campusAdminLogin(request)
-            "coach" -> authApi.coachLogin(request)
-            "student" -> authApi.studentLogin(request)
+        val backendRequest = adjustLoginRequestForBackend(request)
+        val apiResponse = when (request.role) {
+            "super_admin" -> authApi.superAdminLogin(backendRequest)
+            "campus_admin" -> authApi.campusAdminLogin(backendRequest)
+            "coach" -> authApi.coachLogin(backendRequest)
+            "student" -> authApi.studentLogin(backendRequest)
             else -> throw IllegalArgumentException("Unsupported role ${request.role}")
         }
-        if (response.code == 20000) {
-            response.data?.token?.let { token ->
-                tokenManager.saveToken(token, request.role)
-            }
+        val token = apiResponse.data.extractToken()
+        if (apiResponse.code == 20000 && token != null) {
+            tokenManager.saveToken(token, request.role)
         }
-        response
+        ApiResponse(
+            code = apiResponse.code,
+            message = apiResponse.message,
+            data = token?.let { LoginResponse(token = it) }
+        )
     }
 
-    suspend fun logout(): ApiResponse<JsonObject> = withContext(ioDispatcher) {
+    suspend fun logout(): ApiResponse<Unit> = withContext(ioDispatcher) {
         val token = tokenManager.tokenFlow.first().orEmpty()
-        val body = buildJsonObject {
-            put("token", token)
-        }
-        val result = authApi.logout(body)
+        val body = buildJsonObject { put("token", JsonPrimitive(token)) }
+        val response = authApi.logout(body)
         tokenManager.clearToken()
-        result
+        ApiResponse(
+            code = response.code,
+            message = response.message,
+            data = null
+        )
     }
 
     suspend fun fetchTokenInfo(token: String): ApiResponse<TokenInfo> = withContext(ioDispatcher) {
@@ -59,5 +68,21 @@ class AuthRepository @Inject constructor(
 
     suspend fun updateProfile(role: String, payload: JsonObject) = withContext(ioDispatcher) {
         authApi.updateProfile(role, payload)
+    }
+
+    private fun adjustLoginRequestForBackend(request: LoginRequest): LoginRequest {
+        val backendRole = when (request.role) {
+            "campus_admin" -> "admin"
+            else -> request.role
+        }
+        return if (backendRole == request.role) request else request.copy(role = backendRole)
+    }
+
+    private fun JsonElement?.extractToken(): String? {
+        return this.asStringOrNull()
+            ?: (this as? JsonObject)?.let { obj ->
+                obj["token"].asStringOrNull()
+                    ?: obj["data"].asStringOrNull()
+            }
     }
 }

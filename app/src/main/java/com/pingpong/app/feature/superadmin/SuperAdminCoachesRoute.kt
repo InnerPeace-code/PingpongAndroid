@@ -33,7 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pingpong.app.core.common.UiState
 import com.pingpong.app.core.model.admin.AdminCoachSummary
-import com.pingpong.app.core.model.student.CoachApplication
+import com.pingpong.app.core.model.coach.CoachApplication
 import kotlinx.coroutines.delay
 
 @Composable
@@ -165,7 +165,7 @@ private fun SuperAdminCoachesScreen(
                 text = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator()
                     }
@@ -213,8 +213,10 @@ private fun PendingCoachList(
             items(pending, key = { it.relationId }) { coach ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(text = coach.studentName ?: "Coach", style = MaterialTheme.typography.titleMedium)
-                        coach.appliedAt?.let { Text(text = "Applied at: $it") }
+                        Text(text = coach.coachName ?: coach.studentName ?: "Coach", style = MaterialTheme.typography.titleMedium)
+                        if (!coach.appliedAt.isNullOrBlank()) {
+                            Text(text = "Applied at: ${coach.appliedAt}")
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(onClick = { coach.coachId?.let(onApprove) }) {
                                 Text(text = "Approve")

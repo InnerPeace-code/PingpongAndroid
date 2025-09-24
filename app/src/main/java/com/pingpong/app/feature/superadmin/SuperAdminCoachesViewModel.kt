@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pingpong.app.core.common.UiState
 import com.pingpong.app.core.data.SuperAdminRepository
 import com.pingpong.app.core.model.admin.AdminCoachSummary
-import com.pingpong.app.core.model.student.CoachApplication
+import com.pingpong.app.core.model.coach.CoachApplication
 import com.pingpong.app.core.model.student.CoachDetail
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

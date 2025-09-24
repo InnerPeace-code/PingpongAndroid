@@ -107,7 +107,7 @@ private fun CoachStudentsScreen(
                 text = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator()
                     }

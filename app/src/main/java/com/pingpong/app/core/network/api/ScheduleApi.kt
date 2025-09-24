@@ -1,7 +1,8 @@
-package com.pingpong.app.core.network.api
+﻿package com.pingpong.app.core.network.api
 
 import com.pingpong.app.core.model.ApiResponse
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -18,28 +19,28 @@ interface ScheduleApi {
     suspend fun getAdminDefault(): ApiResponse<JsonArray>
 
     @GET("/super_admin/schedule/schools")
-    suspend fun getSuperSchools(): ApiResponse<JsonObject>
+    suspend fun getSuperSchools(): ApiResponse<JsonElement>
 
     @GET("/admin/schedule/managed-schools")
-    suspend fun getAdminSchools(@Query("token") token: String): ApiResponse<JsonObject>
+    suspend fun getAdminSchools(@Query("token") token: String): ApiResponse<JsonElement>
 
     @GET("/super_admin/schedule/check/{schoolId}")
-    suspend fun superCheck(@Path("schoolId") schoolId: Long): ApiResponse<JsonObject>
+    suspend fun superCheck(@Path("schoolId") schoolId: Long): ApiResponse<JsonElement>
 
     @GET("/admin/schedule/check/{schoolId}")
-    suspend fun adminCheck(@Path("schoolId") schoolId: Long): ApiResponse<JsonObject>
+    suspend fun adminCheck(@Path("schoolId") schoolId: Long): ApiResponse<JsonElement>
 
     @POST("/super_admin/schedule/save/{schoolId}")
     suspend fun superSave(
         @Path("schoolId") schoolId: Long,
         @Body schedules: JsonArray
-    ): ApiResponse<JsonObject>
+    ): ApiResponse<JsonElement>
 
     @POST("/admin/schedule/save/{schoolId}")
     suspend fun adminSave(
         @Path("schoolId") schoolId: Long,
         @Body schedules: JsonArray
-    ): ApiResponse<JsonObject>
+    ): ApiResponse<JsonElement>
 
     @GET("/super_admin/schedule/school/{schoolId}")
     suspend fun getSuperSchedule(@Path("schoolId") schoolId: Long): ApiResponse<JsonArray>
@@ -48,10 +49,10 @@ interface ScheduleApi {
     suspend fun getAdminSchedule(@Path("schoolId") schoolId: Long): ApiResponse<JsonArray>
 
     @GET("/super_admin/schedule/existing-templates")
-    suspend fun getSuperTemplates(): ApiResponse<JsonObject>
+    suspend fun getSuperTemplates(): ApiResponse<JsonElement>
 
     @GET("/admin/schedule/existing-templates")
-    suspend fun getAdminTemplates(@Query("token") token: String): ApiResponse<JsonObject>
+    suspend fun getAdminTemplates(@Query("token") token: String): ApiResponse<JsonElement>
 
     @GET("/super_admin/schedule/template/{schoolId}")
     suspend fun getSuperTemplate(@Path("schoolId") schoolId: Long): ApiResponse<JsonArray>

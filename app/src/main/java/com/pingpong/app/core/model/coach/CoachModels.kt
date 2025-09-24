@@ -2,12 +2,16 @@ package com.pingpong.app.core.model.coach
 
 data class CoachApplication(
     val relationId: Long,
-    val studentId: Long?,
-    val studentName: String?,
-    val studentMale: Boolean?,
-    val studentAge: Int?,
-    val status: String?,
-    val appliedAt: String?
+    val coachId: Long? = null,
+    val coachName: String? = null,
+    val coachMale: Boolean? = null,
+    val coachAge: Int? = null,
+    val studentId: Long? = null,
+    val studentName: String? = null,
+    val studentMale: Boolean? = null,
+    val studentAge: Int? = null,
+    val status: String? = null,
+    val appliedAt: String? = null
 )
 
 data class CoachStudent(

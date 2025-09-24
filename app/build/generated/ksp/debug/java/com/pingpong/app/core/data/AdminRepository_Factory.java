@@ -1,5 +1,6 @@
 package com.pingpong.app.core.data;
 
+import com.pingpong.app.core.auth.TokenProvider;
 import com.pingpong.app.core.network.api.AdminApi;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
@@ -25,25 +26,29 @@ import kotlinx.coroutines.CoroutineDispatcher;
 public final class AdminRepository_Factory implements Factory<AdminRepository> {
   private final Provider<AdminApi> adminApiProvider;
 
+  private final Provider<TokenProvider> tokenProvider;
+
   private final Provider<CoroutineDispatcher> ioDispatcherProvider;
 
   public AdminRepository_Factory(Provider<AdminApi> adminApiProvider,
-      Provider<CoroutineDispatcher> ioDispatcherProvider) {
+      Provider<TokenProvider> tokenProvider, Provider<CoroutineDispatcher> ioDispatcherProvider) {
     this.adminApiProvider = adminApiProvider;
+    this.tokenProvider = tokenProvider;
     this.ioDispatcherProvider = ioDispatcherProvider;
   }
 
   @Override
   public AdminRepository get() {
-    return newInstance(adminApiProvider.get(), ioDispatcherProvider.get());
+    return newInstance(adminApiProvider.get(), tokenProvider.get(), ioDispatcherProvider.get());
   }
 
   public static AdminRepository_Factory create(Provider<AdminApi> adminApiProvider,
-      Provider<CoroutineDispatcher> ioDispatcherProvider) {
-    return new AdminRepository_Factory(adminApiProvider, ioDispatcherProvider);
+      Provider<TokenProvider> tokenProvider, Provider<CoroutineDispatcher> ioDispatcherProvider) {
+    return new AdminRepository_Factory(adminApiProvider, tokenProvider, ioDispatcherProvider);
   }
 
-  public static AdminRepository newInstance(AdminApi adminApi, CoroutineDispatcher ioDispatcher) {
-    return new AdminRepository(adminApi, ioDispatcher);
+  public static AdminRepository newInstance(AdminApi adminApi, TokenProvider tokenProvider,
+      CoroutineDispatcher ioDispatcher) {
+    return new AdminRepository(adminApi, tokenProvider, ioDispatcher);
   }
 }

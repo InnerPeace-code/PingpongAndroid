@@ -4,7 +4,7 @@
             "outputFile": "com.pingpong.app-mergeDebugResources-70:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\Ethan\\.gradle\\caches\\8.13\\transforms\\d602883994a8c603e078f0f6dfdfc91d\\transformed\\appcompat-1.6.1\\res\\values-watch-v20\\values-watch-v20.xml",
+                    "source": "C:\\Users\\Ethan\\.gradle\\wrapper\\dists\\gradle-8.7\\caches\\8.13\\transforms\\d602883994a8c603e078f0f6dfdfc91d\\transformed\\appcompat-1.6.1\\res\\values-watch-v20\\values-watch-v20.xml",
                     "from": {
                         "startLines": "2,5,8",
                         "startColumns": "4,4,4",

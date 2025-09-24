@@ -13,10 +13,11 @@ enum class AuthDestination(val route: String) {
 
 enum class TopLevelDestination(val route: String, val title: String) {
     DASHBOARD("main/dashboard", "Dashboard"),
-    PROFILE("main/profile", "个人信息"),
-    ADMIN_MANAGE("main/admin/manage", "管理"),
-    STUDENT("main/student", "学员"),
-    COACH("main/coach", "教练"),
-    SCHEDULE("main/schedule", "课表"),
-    EVALUATION("main/evaluation", "训练评价")
+    PROFILE("main/profile", "Profile"),
+    ADMIN_MANAGE("main/admin/manage", "Admin"),
+    STUDENT("main/student", "Students"),
+    COACH("main/coach", "Coaches"),
+    SUPER_ADMIN_MANAGE("main/super-admin/manage", "Super Admin"),
+    SCHEDULE("main/schedule", "Schedule"),
+    EVALUATION("main/evaluation", "Evaluations")
 }

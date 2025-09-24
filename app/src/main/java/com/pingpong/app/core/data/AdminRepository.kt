@@ -1,5 +1,6 @@
-package com.pingpong.app.core.data
+﻿package com.pingpong.app.core.data
 
+import com.pingpong.app.core.auth.TokenProvider
 import com.pingpong.app.core.common.IoDispatcher
 import com.pingpong.app.core.common.asJsonArrayOrNull
 import com.pingpong.app.core.common.asJsonObjectOrNull
@@ -22,16 +23,19 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 @Singleton
 class AdminRepository @Inject constructor(
     private val adminApi: AdminApi,
+    private val tokenProvider: TokenProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
     suspend fun getCoachRegister(): Result<List<CoachApplication>> = withContext(ioDispatcher) {
         runCatching {
-            val response = adminApi.getCoachRegister()
+            val response = adminApi.getCoachRegister(requireToken())
             ensureSuccess(response)
             response.data.parseCoachApplications()
         }
@@ -51,9 +55,9 @@ class AdminRepository @Inject constructor(
     suspend fun certifyCoach(coachId: Long, isAccepted: Boolean, level: Int?): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
             val payload = buildJsonObject {
-                put("coachId", coachId)
-                put("isAccepted", isAccepted)
-                level?.let { put("level", it) }
+                put("coachId", JsonPrimitive(coachId))
+                put("isAccepted", JsonPrimitive(isAccepted))
+                level?.let { put("level", JsonPrimitive(it)) }
             }
             val response = adminApi.certifyCoach(payload)
             ensureSuccess(response)
@@ -62,23 +66,15 @@ class AdminRepository @Inject constructor(
 
     suspend fun getCertifiedCoaches(params: Map<String, String> = emptyMap()): Result<List<AdminCoachSummary>> = withContext(ioDispatcher) {
         runCatching {
-            val response = adminApi.getCertifiedCoaches(params)
+            val response = adminApi.getCertifiedCoaches(requireToken(), params)
             ensureSuccess(response)
             response.data.parseAdminCoaches()
         }
     }
 
-    suspend fun updateCoachStatus(coachId: Long, status: String): Result<Unit> = withContext(ioDispatcher) {
-        runCatching {
-            val payload = buildJsonObject { put("status", JsonPrimitive(status)) }
-            val response = adminApi.updateCoachStatus(coachId, payload)
-            ensureSuccess(response)
-        }
-    }
-
     suspend fun getStudents(params: Map<String, String> = emptyMap()): Result<List<AdminStudentSummary>> = withContext(ioDispatcher) {
         runCatching {
-            val response = adminApi.getStudents(params)
+            val response = adminApi.getStudents(requireToken(), params)
             ensureSuccess(response)
             response.data.parseAdminStudents()
         }
@@ -86,14 +82,14 @@ class AdminRepository @Inject constructor(
 
     suspend fun updateStudent(token: String?, student: JsonObject): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            val response = adminApi.updateStudent(token, student)
+            val response = adminApi.updateStudent(token ?: requireToken(), student)
             ensureSuccess(response)
         }
     }
 
     suspend fun updateCertifiedCoach(token: String?, coach: JsonObject): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            val response = adminApi.updateCertifiedCoach(token, coach)
+            val response = adminApi.updateCertifiedCoach(token ?: requireToken(), coach)
             ensureSuccess(response)
         }
     }
@@ -104,6 +100,9 @@ class AdminRepository @Inject constructor(
         }
     }
 
+    private fun requireToken(): String = tokenProvider.currentToken()
+        ?: throw IllegalStateException("Authentication token missing")
+
     private fun JsonElement?.parseCoachApplications(): List<CoachApplication> {
         val array = this.asJsonArrayOrNull()
             ?: this.asJsonObjectOrNull()?.jsonArrayOrNull("data")
@@ -113,15 +112,24 @@ class AdminRepository @Inject constructor(
             val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
             val relation = obj.jsonObjectOrNull("relation") ?: obj
             val coach = obj.jsonObjectOrNull("coach") ?: obj
-            val relationId = relation.longOrNull("id") ?: relation.longOrNull("relationId") ?: coach.longOrNull("id") ?: return@mapNotNull null
+            val student = obj.jsonObjectOrNull("student") ?: obj.jsonObjectOrNull("studentInfo")
+            val relationId = relation.longOrNull("id")
+                ?: relation.longOrNull("relationId")
+                ?: coach.longOrNull("id")
+                ?: obj.longOrNull("relationId")
+                ?: return@mapNotNull null
             CoachApplication(
                 relationId = relationId,
-                studentId = relation.longOrNull("studentId"),
-                studentName = coach.stringOrNull("realName") ?: coach.stringOrNull("name"),
-                studentMale = coach.booleanOrNull("male") ?: coach.booleanOrNull("isMale"),
-                studentAge = coach.intOrNull("age"),
-                status = relation.stringOrNull("status"),
-                appliedAt = relation.stringOrNull("createTime") ?: relation.stringOrNull("createdAt")
+                coachId = coach.longOrNull("id") ?: relation.longOrNull("coachId") ?: obj.longOrNull("coachId"),
+                coachName = coach.stringOrNull("realName") ?: coach.stringOrNull("name"),
+                coachMale = coach.booleanOrNull("male") ?: coach.booleanOrNull("isMale"),
+                coachAge = coach.intOrNull("age"),
+                studentId = student?.longOrNull("id") ?: relation.longOrNull("studentId"),
+                studentName = student?.stringOrNull("name") ?: student?.stringOrNull("realName") ?: relation.stringOrNull("studentName"),
+                studentMale = student?.booleanOrNull("male") ?: student?.booleanOrNull("isMale"),
+                studentAge = student?.intOrNull("age"),
+                status = relation.stringOrNull("status") ?: obj.stringOrNull("status"),
+                appliedAt = relation.stringOrNull("createTime") ?: relation.stringOrNull("createdAt") ?: obj.stringOrNull("createTime")
             )
         }
     }
@@ -134,15 +142,21 @@ class AdminRepository @Inject constructor(
         return array.mapNotNull { element ->
             val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
             val id = obj.longOrNull("id") ?: obj.longOrNull("coachId") ?: return@mapNotNull null
+            val certified = obj.booleanOrNull("isCertified") ?: obj.booleanOrNull("certified")
+            val statusText = obj.stringOrNull("status") ?: when (certified) {
+                true -> "CERTIFIED"
+                false -> "PENDING"
+                else -> null
+            }
             AdminCoachSummary(
                 id = id,
                 name = obj.stringOrNull("realName") ?: obj.stringOrNull("name"),
-                status = obj.stringOrNull("status"),
+                status = statusText,
                 level = obj.intOrNull("level"),
                 schoolName = obj.stringOrNull("schoolName") ?: obj.stringOrNull("campusName"),
                 phone = obj.stringOrNull("phone") ?: obj.stringOrNull("mobile"),
                 email = obj.stringOrNull("email"),
-                active = obj.stringOrNull("status")?.equals("ACTIVE", ignoreCase = true)
+                active = certified ?: statusText?.equals("ACTIVE", ignoreCase = true)
             )
         }
     }
@@ -162,7 +176,9 @@ class AdminRepository @Inject constructor(
                 email = obj.stringOrNull("email"),
                 schoolName = obj.stringOrNull("schoolName") ?: obj.stringOrNull("campusName"),
                 status = obj.stringOrNull("status"),
-                balance = obj.doubleOrNull("balance") ?: obj.stringOrNull("balance")?.toDoubleOrNull()
+                balance = obj.doubleOrNull("balance")
+                    ?: obj.stringOrNull("balance")?.toDoubleOrNull()
+                    ?: obj.jsonObjectOrNull("account")?.doubleOrNull("balance")
             )
         }
     }
@@ -187,21 +203,5 @@ class AdminRepository @Inject constructor(
             photoPath = stringOrNull("photoPath") ?: stringOrNull("avatar"),
             pricePerHour = doubleOrNull("price") ?: stringOrNull("price")?.toDoubleOrNull()
         )
-    }
-
-    private fun buildJsonObject(builder: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit): JsonObject {
-        return kotlinx.serialization.json.buildJsonObject(builder)
-    }
-
-    private fun kotlinx.serialization.json.JsonObjectBuilder.put(key: String, value: Long) {
-        this.put(key, kotlinx.serialization.json.JsonPrimitive(value))
-    }
-
-    private fun kotlinx.serialization.json.JsonObjectBuilder.put(key: String, value: Boolean) {
-        this.put(key, kotlinx.serialization.json.JsonPrimitive(value))
-    }
-
-    private fun kotlinx.serialization.json.JsonObjectBuilder.put(key: String, value: Int) {
-        this.put(key, kotlinx.serialization.json.JsonPrimitive(value))
     }
 }

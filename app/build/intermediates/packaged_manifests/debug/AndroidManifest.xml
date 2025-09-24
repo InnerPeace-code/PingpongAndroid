@@ -27,7 +27,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Pingpong" >
+        android:testOnly="true"
+        android:theme="@style/Theme.Pingpong"
+        android:usesCleartextTraffic="true" >
         <activity
             android:name="com.pingpong.app.PingpongActivity"
             android:exported="true" >

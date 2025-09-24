@@ -5,6 +5,7 @@ color primary
 color secondary
 drawable ic_launcher_background
 drawable ic_launcher_foreground
+drawable ic_launcher_round
 drawable placeholder_1_1
 drawable placeholder_4_3
 drawable post_1

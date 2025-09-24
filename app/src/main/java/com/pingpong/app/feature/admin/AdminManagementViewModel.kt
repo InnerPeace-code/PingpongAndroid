@@ -4,15 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pingpong.app.core.common.UiState
 import com.pingpong.app.core.data.AdminRepository
+import com.pingpong.app.core.model.admin.AdminCoachSummary
+import com.pingpong.app.core.model.coach.CoachApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonPrimitive
 
 
 data class CoachItem(
@@ -42,53 +42,47 @@ class AdminManagementViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = UiState.Loading
-            try {
-                val pending = adminRepository.getCoachRegister()
-                val certified = adminRepository.getCertifiedCoaches()
-
-                if (pending.code == 20000 && certified.code == 20000) {
-                    _uiState.value = UiState.Success(
-                        AdminManagementState(
-                            pendingCoaches = pending.data.parseCoachList(),
-                            certifiedCoaches = certified.data.parseCoachList()
-                        )
-                    )
-                } else {
-                    _uiState.value = UiState.Error(pending.message ?: certified.message ?: "Failed to load coach list")
+            val pendingDeferred = async { adminRepository.getCoachRegister() }
+            val certifiedDeferred = async { adminRepository.getCertifiedCoaches() }
+            val pendingResult = pendingDeferred.await()
+            val certifiedResult = certifiedDeferred.await()
+            pendingResult
+                .onSuccess { pending ->
+                    certifiedResult
+                        .onSuccess { certified ->
+                            _uiState.value = UiState.Success(
+                                AdminManagementState(
+                                    pendingCoaches = pending.toPendingCoachItems(),
+                                    certifiedCoaches = certified.toCertifiedCoachItems()
+                                )
+                            )
+                        }
+                        .onFailure { throwable ->
+                            _uiState.value = UiState.Error(throwable.message ?: "Failed to load certified coaches")
+                        }
                 }
-            } catch (t: Throwable) {
-                _uiState.value = UiState.Error(t.message)
-            }
+                .onFailure { throwable ->
+                    _uiState.value = UiState.Error(throwable.message ?: "Failed to load pending coaches")
+                }
         }
     }
 }
 
-private fun JsonObject?.parseCoachList(): List<CoachItem> {
-    val array: JsonArray? = when {
-        this == null -> null
-        this.containsKey("list") -> this["list"] as? JsonArray
-        this.containsKey("data") -> this["data"] as? JsonArray
-        else -> this.values.firstOrNull { it is JsonArray } as? JsonArray
-    }
-
-    return array?.mapNotNull { element ->
-        val obj = element as? JsonObject ?: return@mapNotNull null
-        val id = obj["id"]?.jsonPrimitive?.longOrNullValue
-            ?: obj["coachId"]?.jsonPrimitive?.longOrNullValue
-            ?: return@mapNotNull null
-        val name = obj["realName"]?.jsonPrimitive?.contentOrNullValue
-            ?: obj["name"]?.jsonPrimitive?.contentOrNullValue
-            ?: "Unknown coach"
-        val campus = obj["schoolName"]?.jsonPrimitive?.contentOrNullValue
-            ?: obj["campusName"]?.jsonPrimitive?.contentOrNullValue
-        val status = obj["status"]?.jsonPrimitive?.contentOrNullValue
-        CoachItem(id = id, name = name, campus = campus, status = status)
-    } ?: emptyList()
+private fun List<CoachApplication>.toPendingCoachItems(): List<CoachItem> = map { application ->
+    CoachItem(
+        id = application.coachId ?: application.relationId,
+        name = application.coachName ?: application.studentName ?: "Coach",
+        campus = application.status,
+        status = application.status
+    )
 }
 
-private val JsonPrimitive.longOrNullValue: Long?
-    get() = content.toLongOrNull()
-
-private val JsonPrimitive.contentOrNullValue: String?
-    get() = if (isString) content else runCatching { content }.getOrNull()
+private fun List<AdminCoachSummary>.toCertifiedCoachItems(): List<CoachItem> = map { summary ->
+    CoachItem(
+        id = summary.id,
+        name = summary.name ?: "Coach",
+        campus = summary.schoolName,
+        status = summary.status
+    )
+}
 

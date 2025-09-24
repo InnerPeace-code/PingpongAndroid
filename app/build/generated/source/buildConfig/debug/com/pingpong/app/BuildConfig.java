@@ -10,5 +10,5 @@ public final class BuildConfig {
   public static final int VERSION_CODE = 1;
   public static final String VERSION_NAME = "1.0.0-debug";
   // Field from default config.
-  public static final String API_BASE_URL = "https://example.com/api";
+  public static final String API_BASE_URL = "http://127.0.0.1:8080/api/";
 }

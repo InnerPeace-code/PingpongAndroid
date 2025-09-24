@@ -4,7 +4,6 @@ import com.pingpong.app.core.common.IoDispatcher
 import com.pingpong.app.core.common.asJsonArrayOrNull
 import com.pingpong.app.core.common.asJsonObjectOrNull
 import com.pingpong.app.core.common.booleanOrNull
-import com.pingpong.app.core.common.doubleOrNull
 import com.pingpong.app.core.common.intOrNull
 import com.pingpong.app.core.common.jsonArrayOrNull
 import com.pingpong.app.core.common.jsonObjectOrNull
@@ -21,6 +20,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -114,24 +114,26 @@ class CoachRepository @Inject constructor(
             val obj = element.asJsonObjectOrNull() ?: return@mapNotNull null
             val relation = obj.jsonObjectOrNull("relation") ?: obj
             val student = obj.jsonObjectOrNull("student") ?: obj.jsonObjectOrNull("studentInfo")
+            val coach = obj.jsonObjectOrNull("coach") ?: obj.jsonObjectOrNull("coachInfo")
             val relationId = relation.longOrNull("id")
                 ?: relation.longOrNull("relationId")
+                ?: obj.longOrNull("relationId")
                 ?: obj.longOrNull("id")
                 ?: return@mapNotNull null
             CoachApplication(
                 relationId = relationId,
-                studentId = student?.longOrNull("id") ?: relation.longOrNull("studentId") ?: obj.longOrNull("studentId"),
-                studentName = student?.stringOrNull("name")
-                    ?: student?.stringOrNull("realName")
-                    ?: obj.stringOrNull("studentName"),
+                coachId = coach?.longOrNull("id") ?: relation.longOrNull("coachId") ?: obj.longOrNull("coachId"),
+                coachName = coach?.stringOrNull("realName") ?: coach?.stringOrNull("name"),
+                coachMale = coach?.booleanOrNull("male") ?: coach?.booleanOrNull("isMale"),
+                coachAge = coach?.intOrNull("age"),
+                studentId = student?.longOrNull("id") ?: relation.longOrNull("studentId"),
+                studentName = student?.stringOrNull("name") ?: student?.stringOrNull("realName") ?: obj.stringOrNull("studentName"),
                 studentMale = student?.booleanOrNull("male") ?: student?.booleanOrNull("isMale"),
                 studentAge = student?.intOrNull("age"),
                 status = relation.stringOrNull("status") ?: obj.stringOrNull("status"),
                 appliedAt = relation.stringOrNull("createTime")
                     ?: relation.stringOrNull("createdAt")
                     ?: obj.stringOrNull("createTime")
-                ,
-                coachId = relation.longOrNull("coachId") ?: obj.longOrNull("coachId")
             )
         }
     }
@@ -180,30 +182,37 @@ class CoachRepository @Inject constructor(
     private fun JsonElement?.extractBalance(): Double {
         return when (this) {
             is JsonPrimitive -> this.doubleOrNull ?: this.contentOrNull?.toDoubleOrNull() ?: 0.0
-            is JsonObject -> {
-                this.doubleOrNull("balance")
-                    ?: this.doubleOrNull("amount")
-                    ?: this.stringOrNull("balance")?.toDoubleOrNull()
-                    ?: this.stringOrNull("amount")?.toDoubleOrNull()
-                    ?: 0.0
-            }
-            else -> this?.asJsonObjectOrNull()?.doubleOrNull("balance") ?: 0.0
+            is JsonObject -> parseBalanceFromObject(this)
+            else -> this?.asJsonObjectOrNull()?.let { parseBalanceFromObject(it) } ?: 0.0
         }
+    }
+
+    private fun parseBalanceFromObject(obj: JsonObject): Double {
+        val direct = obj["balance"] ?: obj["amount"]
+        val primitiveValue = (direct as? JsonPrimitive)?.let { it.doubleOrNull ?: it.contentOrNull?.toDoubleOrNull() }
+        return primitiveValue
+            ?: obj.stringOrNull("balance")?.toDoubleOrNull()
+            ?: obj.stringOrNull("amount")?.toDoubleOrNull()
+            ?: 0.0
     }
 
     private fun JsonElement?.parseTransactions(page: Int, size: Int): CoachTransactionPage {
         val obj = this.asJsonObjectOrNull()
-        val array = when {
+        val arrayCandidate = when {
             this.asJsonArrayOrNull() != null -> this.asJsonArrayOrNull()
             obj?.jsonArrayOrNull("records") != null -> obj.jsonArrayOrNull("records")
             obj?.jsonArrayOrNull("data") != null -> obj.jsonArrayOrNull("data")
             obj?.jsonArrayOrNull("content") != null -> obj.jsonArrayOrNull("content")
-            else -> emptyList()
+            else -> null
         }
-        val records = array.mapNotNull { element ->
+        val entries = arrayCandidate ?: emptyList<JsonElement>()
+        val records = entries.mapNotNull { element ->
             val transactionObj = element.asJsonObjectOrNull() ?: return@mapNotNull null
             val id = transactionObj.longOrNull("id") ?: return@mapNotNull null
-            val amount = transactionObj.doubleOrNull("amount")
+            val amount = transactionObj["amount"]
+                ?.let { (it as? JsonPrimitive)?.let { primitive -> primitive.doubleOrNull ?: primitive.contentOrNull?.toDoubleOrNull() } }
+                ?: transactionObj.stringOrNull("amount")?.toDoubleOrNull()
+                ?: 0.0
                 ?: transactionObj.stringOrNull("amount")?.toDoubleOrNull()
                 ?: 0.0
             CoachTransaction(
@@ -229,3 +238,5 @@ class CoachRepository @Inject constructor(
         )
     }
 }
+
+

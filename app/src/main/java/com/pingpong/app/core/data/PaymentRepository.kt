@@ -1,9 +1,10 @@
-package com.pingpong.app.core.data
+﻿package com.pingpong.app.core.data
 
 import com.pingpong.app.core.common.IoDispatcher
 import com.pingpong.app.core.common.asDoubleOrNull
 import com.pingpong.app.core.common.asJsonArrayOrNull
 import com.pingpong.app.core.common.asJsonObjectOrNull
+import com.pingpong.app.core.common.asStringOrNull
 import com.pingpong.app.core.common.booleanOrNull
 import com.pingpong.app.core.common.doubleOrNull
 import com.pingpong.app.core.common.intOrNull
@@ -18,7 +19,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 @Singleton
@@ -33,7 +33,7 @@ class PaymentRepository @Inject constructor(
             if (response.code != 20000) {
                 throw IllegalStateException(response.message ?: "Failed to fetch balance")
             }
-            response.data?.asDoubleOrNull() ?: response.data?.stringOrNull()?.toDoubleOrNull() ?: 0.0
+            response.data?.asDoubleOrNull() ?: response.data?.asStringOrNull()?.toDoubleOrNull() ?: 0.0
         }
     }
 
@@ -47,10 +47,14 @@ class PaymentRepository @Inject constructor(
             if (response.code != 20000) {
                 throw IllegalStateException(response.message ?: "Failed to create payment")
             }
-            val data = response.data ?: throw IllegalStateException("Missing payment info")
+            val dataObj = response.data?.asJsonObjectOrNull()
+                ?: throw IllegalStateException("Missing payment info")
             PaymentSummary(
-                recordId = data.longOrNull("id") ?: throw IllegalStateException("Missing payment record id"),
-                qrCodeUrl = data.stringOrNull("qrCodeUrl") ?: data.stringOrNull("qrcode")
+                recordId = dataObj.longOrNull("id") ?: dataObj.longOrNull("recordId")
+                    ?: throw IllegalStateException("Missing payment record id"),
+                qrCodeUrl = dataObj.stringOrNull("qrCodeUrl")
+                    ?: dataObj.stringOrNull("qrcode")
+                    ?: dataObj.stringOrNull("qrCode")
             )
         }
     }
@@ -85,26 +89,29 @@ class PaymentRepository @Inject constructor(
             if (response.code != 20000) {
                 throw IllegalStateException(response.message ?: "Failed to load records")
             }
-            val data = response.data ?: JsonObject(emptyMap())
-            val recordsArray = data.jsonArrayOrNull("content")
-                ?: data.jsonArrayOrNull("records")
+            val root = response.data?.asJsonObjectOrNull()
+            val recordsArray = root?.jsonArrayOrNull("content")
+                ?: root?.jsonArrayOrNull("records")
                 ?: response.data?.asJsonArrayOrNull()
-            val records = recordsArray?.mapNotNull { it.asJsonObjectOrNull()?.toPaymentRecord() } ?: emptyList()
-            val total = data.intOrNull("totalElements")
-                ?: data.intOrNull("total")
+            val records = recordsArray?.mapNotNull { element ->
+                element.asJsonObjectOrNull()?.toPaymentRecord()
+            } ?: emptyList()
+            val total = root?.intOrNull("totalElements")
+                ?: root?.intOrNull("total")
+                ?: root?.intOrNull("count")
                 ?: records.size
             PaymentHistory(records = records, total = total)
         }
     }
 
     private fun JsonObject.toPaymentRecord(): PaymentRecord? {
-        val id = longOrNull("id") ?: return null
-        val amount = doubleOrNull("amount") ?: 0.0
+        val id = longOrNull("id") ?: longOrNull("recordId") ?: return null
+        val amount = doubleOrNull("amount") ?: stringOrNull("amount")?.toDoubleOrNull() ?: 0.0
         return PaymentRecord(
             id = id,
             amount = amount,
             status = stringOrNull("status"),
-            method = stringOrNull("method"),
+            method = stringOrNull("method") ?: stringOrNull("paymentMethod"),
             type = stringOrNull("type"),
             createdAt = stringOrNull("createTime") ?: stringOrNull("createdAt"),
             updatedAt = stringOrNull("updateTime") ?: stringOrNull("updatedAt"),

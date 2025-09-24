@@ -90,7 +90,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.ic_launcher_round),
+            painter = painterResource(id = R.drawable.ic_launcher_round),
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
